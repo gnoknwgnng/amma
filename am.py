@@ -20,9 +20,9 @@ def extract_video_id(url):
     return None
 
 # Function to fetch YouTube transcript
-def get_youtube_transcript(video_id, lang_code="en"):
+def get_youtube_transcript(video_id):
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang_code])
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
         text = " ".join([t["text"] for t in transcript])
         return text
     except Exception as e:
@@ -63,7 +63,6 @@ st.write("Enter a YouTube video URL to extract the transcript, summarize it, and
 
 # User input
 video_url = st.text_input("Enter YouTube Video URL:")
-lang_code = st.selectbox("Select language:", ["en", "hi", "es", "fr", "de", "zh", "ar", "ru", "ja", "ko"], index=0)
 summary_level = st.radio("Select summary length:", ["short", "medium", "detailed"], index=1)
 num_mcqs = st.slider("Number of MCQs:", 3, 10, 5)
 
@@ -72,7 +71,7 @@ if st.button("Get Transcript"):
         video_id = extract_video_id(video_url)
         if video_id:
             with st.spinner("Fetching transcript..."):
-                transcript = get_youtube_transcript(video_id, lang_code)
+                transcript = get_youtube_transcript(video_id)
                 st.session_state["transcript"] = transcript
                 time.sleep(2)
         else:
@@ -93,6 +92,8 @@ if "transcript" in st.session_state:
 if "summary" in st.session_state:
     st.subheader("📝 Summary")
     st.write(st.session_state["summary"])
+    
+    lang_code = st.selectbox("Select language for reading:", ["en", "hi", "es", "fr", "de", "zh", "ar", "ru", "ja", "ko"], index=0)
     
     if st.button("Generate MCQs"):
         with st.spinner("Creating MCQs..."):
