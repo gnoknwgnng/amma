@@ -1,11 +1,11 @@
 import streamlit as st
 import google.generativeai as genai
-from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 import re
 import time
 
 # Configure Gemini API Key
-genai.configure(api_key="AIzaSyCFA8FGd9mF42_4ExVYTqOsvOeCbyHzBFU")
+genai.configure(api_key="YOUR_HUGGING_FACE_API_KEY")
 
 # Function to extract video ID
 def extract_video_id(url):
@@ -19,12 +19,15 @@ def extract_video_id(url):
             return match.group(1)
     return None
 
-# Function to fetch YouTube transcript
+# Function to fetch YouTube transcript in available language
 def get_youtube_transcript(video_id):
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript = transcript_list.find_translatable_transcript(['en']).fetch()
         text = " ".join([t["text"] for t in transcript])
         return text
+    except (TranscriptsDisabled, NoTranscriptFound):
+        return "No transcript available for this video."
     except Exception as e:
         return f"Error fetching transcript: {str(e)}"
 
@@ -37,6 +40,16 @@ def summarize_text(text, level="medium"):
         return response.text
     except Exception as e:
         return f"Error summarizing text: {str(e)}"
+
+# Function to translate text
+def translate_text(text, target_language):
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+        prompt = f"Translate the following text to {target_language}:\n\n{text}"
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error translating text: {str(e)}"
 
 # Function to generate MCQs
 def generate_mcqs(text, num_questions=5):
@@ -59,7 +72,7 @@ def generate_mcqs(text, num_questions=5):
 
 # Streamlit UI
 st.title("📚 YouTube AI Tutor")
-st.write("Enter a YouTube video URL to extract the transcript, summarize it, and generate multiple-choice questions.")
+st.write("Enter a YouTube video URL to extract the transcript, summarize it, translate it, and generate multiple-choice questions.")
 
 # User input
 video_url = st.text_input("Enter YouTube Video URL:")
@@ -93,7 +106,16 @@ if "summary" in st.session_state:
     st.subheader("📝 Summary")
     st.write(st.session_state["summary"])
     
-    lang_code = st.selectbox("Select language for reading:", ["en", "hi", "es", "fr", "de", "zh", "ar", "ru", "ja", "ko"], index=0)
+    lang_code = st.selectbox("Select language for translation:", ["English", "Hindi", "Spanish", "French", "German", "Chinese", "Arabic", "Russian", "Japanese", "Korean"], index=0)
+    if st.button("Translate Summary"):
+        with st.spinner("Translating summary..."):
+            translated_summary = translate_text(st.session_state["summary"], lang_code)
+            st.session_state["translated_summary"] = translated_summary
+            time.sleep(2)
+
+if "translated_summary" in st.session_state:
+    st.subheader("🌍 Translated Summary")
+    st.write(st.session_state["translated_summary"])
     
     if st.button("Generate MCQs"):
         with st.spinner("Creating MCQs..."):
