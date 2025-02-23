@@ -5,7 +5,7 @@ import re
 import time
 
 # Configure Gemini API Key
-genai.configure(api_key="YOUR_HUGGING_FACE_API_KEY")
+genai.configure(api_key="AIzaSyCFA8FGd9mF42_4ExVYTqOsvOeCbyHzBFU")
 
 # Function to extract video ID
 def extract_video_id(url):
